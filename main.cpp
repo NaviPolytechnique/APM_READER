@@ -11,44 +11,75 @@
 #include "Serial.h"
 #include <string>
 
-const std::string initial_path_to_file = "/home/louis/Documents/C++/APM_LOG/";
-const char* APM_port_name = "/dev/tty.ACM0";
+const std::string initial_path_to_file = "/Users/louisfaury/Documents/C++/APM_LOG/";
+const char* APM_port_name = "/dev/tty.usbmodem1421";
 char buffer[128];
+
 
 int main(int argc, const char * argv[]) {
     
-    // User interaction to create file
-    std::string path_ending, log_ending;
+// User interaction to create file
+    
+    
     
     // Main reading file path
+    std::string path_ending;
     std::cout << "Enter path final extension" << std::endl;
     std::cin >> path_ending;
-    std::string path_to_file = initial_path_to_file + path_ending;
+    std::string path_to_file = initial_path_to_file + path_ending; // Be sure to check your file is created already
     
-    // LOG reading file path
-    std::cout << "Enter log final extension" << std::endl;
-    std::cin >> log_ending;
-    std::string path_to_log = initial_path_to_file + log_ending;
-
+    // Declaring text files names
+    std::string acc_file_name = path_to_file + "/acc.txt";
+    std::string gyro_file_name = path_to_file + "/gyro.txt";
+    std::string gps_file_name = path_to_file + "/gps.txt";
+    std::string mag_file_name = path_to_file + "/mag.txt";
+    std::string log_file_name = path_to_file + "/log.txt";
     
     
-    // Opening files
-    std::ofstream file(path_to_file.c_str());
-    std::ofstream log(path_to_log.c_str());
+    // Declaring text files
+    std::ofstream acc_file(acc_file_name.c_str());
+    std::ofstream gyro_file(gyro_file_name.c_str());
+    std::ofstream gps_file(gps_file_name.c_str());
+    std::ofstream mag_file(mag_file_name.c_str());
+    std::ofstream log_file(log_file_name.c_str());
+    
     
     // Reading datas from APM
-    if (file && log){
+    if (acc_file && gyro_file && gps_file && mag_file && log_file){
         try {
             Serial APM(APM_port_name,115200);
-            for (int i=0; i<2000 ; i++){
+            for (int i=0; i<10000 ; i++){
                 APM.readLine(buffer);
                 
-                // If starts with $ stored in main file
+                // If starts with $ : stored in main files
                 if (buffer[0]=='$'){
-                    file << buffer;
+                    switch (buffer[1]){
+                        case 'A' :
+                            acc_file << buffer;
+                            acc_file.flush();
+                            break;
+                        case 'G' :
+                            if (buffer[2] == 'P') {
+                                gps_file << buffer;
+                                gps_file.flush();
+                            }
+                            else {
+                                gyro_file << buffer;
+                                gyro_file.flush();
+                            }
+                            break;
+                        case 'M' :
+                            mag_file << buffer;
+                            mag_file.flush();
+                            break;
+                        default:
+                            std::cout << "Couldn't store : " << buffer << std::endl;
+                            break;
+                    }
                 }
+               
                 //else stored in logger
-                else log << buffer <<std::endl;
+                else log_file << buffer <<std::endl;
                 std::cout << buffer;
             }
             APM.Close();
